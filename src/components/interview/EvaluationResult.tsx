@@ -14,7 +14,6 @@ interface EvaluationResultProps {
 export default function EvaluationResult({
   evaluation,
   questionNumber,
-  totalQuestions,
   onNextQuestion,
   isLastQuestion,
 }: EvaluationResultProps) {

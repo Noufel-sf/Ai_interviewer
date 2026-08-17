@@ -15,7 +15,6 @@ export default function InterviewPage() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isEvaluating, setIsEvaluating] = useState<boolean>(false);
   const [currentEvaluation, setCurrentEvaluation] = useState<AnswerEvaluation | null>(null);
-  const [lastUserAnswer, setLastUserAnswer] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Start new interview session
@@ -66,7 +65,6 @@ export default function InterviewPage() {
 
     setIsEvaluating(true);
     setErrorMessage(null);
-    setLastUserAnswer(userAnswer);
 
     try {
       const res = await fetch("/api/interview/evaluate", {
@@ -197,7 +195,7 @@ export default function InterviewPage() {
         <div className="flex items-center gap-3">
           <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-400">
             <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-            Gemini 2.5 Flash
+            Gemini 3.6 Flash
           </span>
         </div>
       </header>
