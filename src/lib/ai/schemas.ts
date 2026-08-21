@@ -7,6 +7,7 @@ export const QuestionResponseSchema = z.object({
   questionText: z.string(),
   contextHint: z.string().optional(),
   keyConceptsExpected: z.array(z.string()),
+  toolUsed: z.string().optional(),
 });
 
 export const EvaluationResponseSchema = z.object({

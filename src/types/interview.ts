@@ -42,6 +42,7 @@ export interface Question {
   questionText: string;
   contextHint?: string;
   keyConceptsExpected: string[];
+  toolUsed?: string;
 }
 
 export interface CriteriaBreakdown {

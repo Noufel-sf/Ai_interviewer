@@ -21,6 +21,11 @@ export default function InterviewQuestion({ question, questionNumber }: Intervie
           <h3 className="text-xs font-semibold tracking-wider text-indigo-400 uppercase">
             Technical Interview Question
           </h3>
+          {question.toolUsed && (
+            <span className="hidden sm:inline-flex items-center gap-1 rounded-md border border-cyan-500/30 bg-cyan-500/10 px-2 py-0.5 text-[10px] font-mono text-cyan-300">
+              🛠️ Tool: {question.toolUsed}()
+            </span>
+          )}
         </div>
 
         {question.contextHint && (

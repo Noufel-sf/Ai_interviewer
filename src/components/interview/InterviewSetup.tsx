@@ -31,11 +31,25 @@ const TOPICS: TopicOption[] = [
     iconName: "react",
   },
   {
+    id: "nextjs",
+    name: "Next.js App Router",
+    category: "Frontend",
+    description: "Server Actions, Streaming, Turbopack, SSR/SSG/ISR & Caching",
+    iconName: "next",
+  },
+  {
     id: "nodejs",
     name: "Node.js & Backend",
     category: "Backend",
     description: "Event emitter, Streams, Worker threads, Microservices & I/O",
     iconName: "node",
+  },
+  {
+    id: "python",
+    name: "Python Architecture",
+    category: "Backend",
+    description: "GIL mechanics, Asyncio, Memory management, Metaclasses & Typing",
+    iconName: "py",
   },
   {
     id: "system-design",
@@ -157,7 +171,7 @@ export default function InterviewSetup({ onStart, isLoading = false }: Interview
               </span>
               Select Technical Specialization
             </h2>
-            <span className="text-xs text-slate-400">10 Topics Available</span>
+            <span className="text-xs text-slate-400">{TOPICS.length} Topics Available</span>
           </div>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -168,7 +182,7 @@ export default function InterviewSetup({ onStart, isLoading = false }: Interview
                   key={topic.id}
                   type="button"
                   onClick={() => setSelectedTopic(topic.id)}
-                  className={`group relative flex flex-col justify-between rounded-xl border p-4 text-left transition-all duration-200 ${
+                  className={`group cursor-pointer relative flex flex-col justify-between rounded-xl border p-4 text-left transition-all duration-200 ${
                     isSelected
                       ? "border-indigo-500/60 bg-slate-800/90 shadow-lg shadow-indigo-500/10 ring-1 ring-indigo-500/50"
                       : "border-slate-800/80 bg-slate-900/60 hover:border-slate-700 hover:bg-slate-800/50"
@@ -259,7 +273,7 @@ export default function InterviewSetup({ onStart, isLoading = false }: Interview
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-3 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-cyan-500 px-8 py-3.5 text-base font-bold text-white shadow-lg shadow-indigo-600/30 hover:shadow-indigo-600/50 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full cursor-pointer sm:w-auto inline-flex items-center justify-center gap-3 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-cyan-500 px-8 py-3.5 text-base font-bold text-white shadow-lg shadow-indigo-600/30 hover:shadow-indigo-600/50 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading ? (
               <>

@@ -1,7 +1,8 @@
 import { GoogleGenAI } from "@google/genai";
-import { DifficultyLevel, TopicId } from "@/types/interview";
+import { DifficultyLevel, TopicId, QuestionAttempt } from "@/types/interview";
 import { QuestionResponseType, EvaluationResponseType, QuestionResponseSchema, EvaluationResponseSchema } from "./schemas";
 import { INTERVIEWER_SYSTEM_PROMPT, getQuestionGenerationPrompt, getEvaluationPrompt } from "./prompts";
+import { candidatePerformanceTool, executeCandidatePerformanceTool } from "./tools";
 
 /**
  * Initializes the official Google Gen AI client.
@@ -17,22 +18,119 @@ function getGeminiClient(): GoogleGenAI {
   return new GoogleGenAI({ apiKey });
 }
 
+function cleanJsonString(raw: string): string {
+  let cleaned = raw.trim();
+  if (cleaned.startsWith("```json")) {
+    cleaned = cleaned.slice(7);
+  } else if (cleaned.startsWith("```")) {
+    cleaned = cleaned.slice(3);
+  }
+  if (cleaned.endsWith("```")) {
+    cleaned = cleaned.slice(0, -3);
+  }
+  return cleaned.trim();
+}
+
 /**
  * Calls Gemini 3.6 Flash to dynamically generate a realistic technical interview question.
- * Temperature is set to 0.7 to ensure a variety of unique questions across attempts.
+ * Supports Stage 4 Function Calling: When prior attempts exist in the session, Gemini is equipped
+ * with the `getCandidatePerformanceHistory` tool to inspect weaknesses and craft an adaptive question.
  */
 export async function generateInterviewQuestion(
   topic: TopicId,
   difficulty: DifficultyLevel,
-  previousQuestions: string[] = []
+  previousQuestions: string[] = [],
+  attempts: QuestionAttempt[] = []
 ): Promise<QuestionResponseType> {
   const client = getGeminiClient();
 
-  const prompt = getQuestionGenerationPrompt(topic, difficulty, previousQuestions);
+  const basePrompt = getQuestionGenerationPrompt(topic, difficulty, previousQuestions);
+  const hasPriorAttempts = attempts && attempts.length > 0;
 
+  // Stage 4: If there are previous attempts in this session, provide the candidate performance tool
+  if (hasPriorAttempts) {
+    try {
+      const promptWithToolContext = `${basePrompt}
+
+CRITICAL: You have access to the tool "getCandidatePerformanceHistory".
+Before writing the question, invoke "getCandidatePerformanceHistory" with topic "${topic}" to see the candidate's previous scores, missing concepts, and weak areas.
+Then generate a targeted follow-up question that addresses their missed concepts or tests deeper mechanics.`;
+
+      const initialResponse = await client.models.generateContent({
+        model: "gemini-3.6-flash",
+        contents: promptWithToolContext,
+        config: {
+          systemInstruction: INTERVIEWER_SYSTEM_PROMPT,
+          tools: [{ functionDeclarations: [candidatePerformanceTool] }],
+          temperature: 0.7,
+        },
+      });
+
+      // Check if Gemini decided to invoke the tool
+      if (initialResponse.functionCalls && initialResponse.functionCalls.length > 0) {
+        const call = initialResponse.functionCalls[0];
+        console.log(`[Stage 4: Tool Calling] Gemini invoked tool: ${call.name} with args:`, call.args);
+
+        // Execute tool locally
+        const toolOutput = executeCandidatePerformanceTool(attempts, call.args as { topic?: string });
+        console.log("[Stage 4: Tool Calling] Tool execution output:", toolOutput);
+
+        // Use the original candidate content to preserve thought_signatures and internal metadata
+        const modelContent = initialResponse.candidates?.[0]?.content || {
+          role: "model",
+          parts: [{ functionCall: call }],
+        };
+
+        // Send the tool response back to Gemini to complete question generation
+        const followUpResponse = await client.models.generateContent({
+          model: "gemini-3.6-flash",
+          contents: [
+            { role: "user", parts: [{ text: promptWithToolContext }] },
+            modelContent,
+            {
+              role: "user",
+              parts: [
+                {
+                  functionResponse: {
+                    name: call.name,
+                    response: { output: toolOutput },
+                  },
+                },
+              ],
+            },
+          ],
+          config: {
+            systemInstruction: INTERVIEWER_SYSTEM_PROMPT,
+            responseMimeType: "application/json",
+            temperature: 0.7,
+          },
+        });
+
+        const text = followUpResponse.text || "";
+        if (text.trim()) {
+          const parsed = JSON.parse(cleanJsonString(text));
+          const validated = QuestionResponseSchema.parse(parsed);
+          return {
+            ...validated,
+            toolUsed: call.name,
+          };
+        }
+      }
+
+      // If Gemini returned direct JSON without tool invocation:
+      if (initialResponse.text && initialResponse.text.trim()) {
+        const parsed = JSON.parse(cleanJsonString(initialResponse.text));
+        return QuestionResponseSchema.parse(parsed);
+      }
+    } catch (toolError) {
+      console.warn("[Stage 4: Tool Calling] Tool calling step encountered an issue, falling back to direct generation:", toolError);
+    }
+  }
+
+  // Standard generation (e.g. for Question 1 without tools)
   const response = await client.models.generateContent({
     model: "gemini-3.6-flash",
-    contents: prompt,
+    contents: basePrompt,
     config: {
       systemInstruction: INTERVIEWER_SYSTEM_PROMPT,
       responseMimeType: "application/json",
@@ -45,7 +143,8 @@ export async function generateInterviewQuestion(
     throw new Error("Received empty response from Gemini during question generation.");
   }
 
-  const parsed = JSON.parse(text);
+  const cleaned = cleanJsonString(text);
+  const parsed = JSON.parse(cleaned);
   // Validating against Zod schema ensures type-safety and prevents runtime crashes
   return QuestionResponseSchema.parse(parsed);
 }
@@ -80,7 +179,8 @@ export async function evaluateUserAnswer(
     throw new Error("Received empty response from Gemini during answer evaluation.");
   }
 
-  const parsed = JSON.parse(text);
+  const cleaned = cleanJsonString(text);
+  const parsed = JSON.parse(cleaned);
   // Validating against Zod schema ensures type-safety and prevents runtime crashes
   return EvaluationResponseSchema.parse(parsed);
 }

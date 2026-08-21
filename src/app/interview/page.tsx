@@ -137,6 +137,7 @@ export default function InterviewPage() {
           topic: session.setup.topic,
           difficulty: session.setup.difficulty,
           previousQuestions: previousQuestionsText,
+          attempts: session.attempts,
         }),
       });
 
