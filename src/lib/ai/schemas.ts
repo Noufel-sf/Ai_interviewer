@@ -24,6 +24,15 @@ export const EvaluationResponseSchema = z.object({
   detailedFeedback: z.string(),
   betterAnswer: z.string(),
   keyTakeaways: z.array(z.string()),
+  conceptCoverage: z
+    .array(
+      z.object({
+        concept: z.string(),
+        similarity: z.number(),
+        covered: z.boolean(),
+      })
+    )
+    .optional(),
 });
 
 export type QuestionResponseType = z.infer<typeof QuestionResponseSchema>;

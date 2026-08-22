@@ -61,6 +61,11 @@ export interface AnswerEvaluation {
   detailedFeedback: string;
   betterAnswer: string;
   keyTakeaways: string[];
+  conceptCoverage?: {
+    concept: string;
+    similarity: number;
+    covered: boolean;
+  }[];
 }
 
 export interface QuestionAttempt {

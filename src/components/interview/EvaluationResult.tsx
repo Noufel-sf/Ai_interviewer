@@ -138,6 +138,48 @@ export default function EvaluationResult({
         </div>
       </div>
 
+      {/* Stage 5: Semantic Concept Coverage (Vector Embedding Similarity) */}
+      {evaluation.conceptCoverage && evaluation.conceptCoverage.length > 0 && (
+        <div className="space-y-3 rounded-2xl border border-indigo-500/30 bg-slate-900/90 p-5 backdrop-blur-md">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h3 className="flex items-center gap-2 text-sm font-bold text-indigo-300">
+              <span className="flex h-5 w-5 items-center justify-center rounded bg-indigo-600 text-[11px] font-bold text-white">
+                📐
+              </span>
+              Semantic Concept Coverage (Vector Embedding Analysis)
+            </h3>
+            <span className="text-[10px] font-mono text-indigo-400/80 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">
+              gemini-embedding-001 • Cosine Similarity
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+            {evaluation.conceptCoverage.map((item, i) => (
+              <div
+                key={i}
+                className="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-950 p-3 text-xs"
+              >
+                <div className="flex items-center gap-2 overflow-hidden pr-2">
+                  <span className={item.covered ? "text-emerald-400 font-bold" : "text-slate-500"}>
+                    {item.covered ? "✓" : "○"}
+                  </span>
+                  <span className="text-slate-200 truncate">{item.concept}</span>
+                </div>
+                <span
+                  className={`font-mono font-bold px-2 py-0.5 rounded text-[11px] shrink-0 ${
+                    item.covered
+                      ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                      : "bg-slate-800 text-slate-400 border border-slate-700"
+                  }`}
+                >
+                  {(item.similarity * 100).toFixed(0)}% sim
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Incorrect Points (If Any) */}
       {evaluation.incorrectPoints && evaluation.incorrectPoints.length > 0 && (
         <div className="space-y-3 rounded-2xl border border-rose-500/30 bg-rose-500/10 p-5 backdrop-blur-md">

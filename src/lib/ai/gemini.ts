@@ -28,7 +28,21 @@ function cleanJsonString(raw: string): string {
   if (cleaned.endsWith("```")) {
     cleaned = cleaned.slice(0, -3);
   }
-  return cleaned.trim();
+  cleaned = cleaned.trim();
+
+  // If valid JSON as-is, return immediately
+  try {
+    JSON.parse(cleaned);
+    return cleaned;
+  } catch {
+    // Fix unescaped control characters in string literals (e.g. raw newlines in code examples)
+    return cleaned.replace(/[\x00-\x1F\x7F]/g, (char) => {
+      if (char === "\n") return "\\n";
+      if (char === "\r") return "\\r";
+      if (char === "\t") return "\\t";
+      return "";
+    });
+  }
 }
 
 /**
@@ -181,6 +195,16 @@ export async function evaluateUserAnswer(
 
   const cleaned = cleanJsonString(text);
   const parsed = JSON.parse(cleaned);
+
+  // Stage 5: Compute mathematical semantic concept coverage using embeddings & cosine similarity
+  try {
+    const { evaluateConceptCoverage } = await import("./embeddings");
+    const conceptCoverage = await evaluateConceptCoverage(userAnswer, keyConceptsExpected || []);
+    parsed.conceptCoverage = conceptCoverage;
+  } catch (embedError) {
+    console.warn("[Stage 5: Embeddings] Could not compute concept coverage:", embedError);
+  }
+
   // Validating against Zod schema ensures type-safety and prevents runtime crashes
   return EvaluationResponseSchema.parse(parsed);
 }
