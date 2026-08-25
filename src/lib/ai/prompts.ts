@@ -55,8 +55,19 @@ export function getEvaluationPrompt(
   difficulty: DifficultyLevel,
   questionText: string,
   keyConceptsExpected: string[],
-  userAnswer: string
+  userAnswer: string,
+  retrievedDocs: { title: string; content: string; score: number }[] = []
 ): string {
+  const ragContextBlock = retrievedDocs.length > 0
+    ? `
+CRITICAL RAG GROUNDING CONTEXT:
+The following authoritative engineering documentation was retrieved from the technical knowledge base via vector similarity search for this question and answer.
+Use these documents as the GROUND TRUTH benchmark to evaluate technical accuracy, identify missing mechanics, and formulate the model answer:
+
+${retrievedDocs.map((doc, idx) => `[Source ${idx + 1}: ${doc.title} (Match Score: ${(doc.score * 100).toFixed(0)}%)]\n${doc.content}`).join("\n\n")}
+`
+    : "";
+
   return `
 Evaluate this candidate's technical interview answer.
 
@@ -64,13 +75,13 @@ Topic: ${topic}
 Target Difficulty Level: ${difficulty}
 Question Asked: "${questionText}"
 Key Concepts Expected: ${JSON.stringify(keyConceptsExpected)}
-
+${ragContextBlock}
 Candidate's Submitted Answer:
 """
 ${userAnswer}
 """
 
-Evaluate the candidate's answer strictly and constructively like a Principal Engineer interviewer.
+Evaluate the candidate's answer strictly and constructively like a Principal Engineer interviewer. Ground your evaluation in the verified technical reference context provided above.
 
 Required Analysis:
 1. overallScore: Score from 0 to 10 (decimal allowed, e.g. 7.5). Be fair: a score of 9-10 is for exceptional staff-level answers; 7-8 for solid accurate answers; 4-6 for partially correct/incomplete answers; <4 for wrong or missing fundamentals.

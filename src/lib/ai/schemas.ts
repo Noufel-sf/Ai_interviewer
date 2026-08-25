@@ -24,6 +24,17 @@ export const EvaluationResponseSchema = z.object({
   detailedFeedback: z.string(),
   betterAnswer: z.string(),
   keyTakeaways: z.array(z.string()),
+  ragSources: z
+    .array(
+      z.object({
+        id: z.string(),
+        title: z.string(),
+        category: z.string(),
+        score: z.number(),
+        content: z.string(),
+      })
+    )
+    .optional(),
   conceptCoverage: z
     .array(
       z.object({

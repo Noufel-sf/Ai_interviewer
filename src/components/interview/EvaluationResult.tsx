@@ -18,6 +18,7 @@ export default function EvaluationResult({
   isLastQuestion,
 }: EvaluationResultProps) {
   const [showBetterAnswer, setShowBetterAnswer] = useState<boolean>(true);
+  const [expandedRagDocId, setExpandedRagDocId] = useState<string | null>(null);
 
   const getScoreColor = (score: number) => {
     if (score >= 8) return { text: "text-emerald-400", bg: "bg-emerald-500", border: "border-emerald-500/30", gradient: "from-emerald-500 to-teal-400" };
@@ -176,6 +177,71 @@ export default function EvaluationResult({
                 </span>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Stage 7: RAG Grounding & Retrieved Technical Reference Context */}
+      {evaluation.ragSources && evaluation.ragSources.length > 0 && (
+        <div className="space-y-4 rounded-2xl border border-cyan-500/30 bg-slate-900/90 p-5 backdrop-blur-md">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 text-xs font-bold">
+                📚
+              </span>
+              <div>
+                <h3 className="text-sm font-bold text-cyan-300">
+                  RAG Grounding & Retrieved Reference Context (Stage 7)
+                </h3>
+                <p className="text-[11px] text-slate-400">
+                  Authoritative engineering documents retrieved via vector similarity search to benchmark your answer.
+                </p>
+              </div>
+            </div>
+            <span className="text-[10px] font-mono text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">
+              Vector DB • Top-{evaluation.ragSources.length} Chunks
+            </span>
+          </div>
+
+          <div className="space-y-2.5 pt-1">
+            {evaluation.ragSources.map((source) => {
+              const isExpanded = expandedRagDocId === source.id;
+              return (
+                <div
+                  key={source.id}
+                  className="rounded-xl border border-slate-800 bg-slate-950/80 p-3.5 transition-all hover:border-slate-700"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="h-2 w-2 rounded-full bg-cyan-400"></span>
+                      <span className="text-xs font-bold text-slate-200">{source.title}</span>
+                      <span className="text-[10px] uppercase font-mono text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded">
+                        {source.category}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs font-mono font-bold text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 px-2 py-0.5 rounded">
+                        {(source.score * 100).toFixed(0)}% match
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setExpandedRagDocId(isExpanded ? null : source.id)}
+                        className="text-xs text-cyan-400 hover:text-cyan-300 font-medium"
+                      >
+                        {isExpanded ? "Hide Excerpt ▲" : "View Excerpt ▼"}
+                      </button>
+                    </div>
+                  </div>
+
+                  {isExpanded && (
+                    <div className="mt-3 rounded-lg border border-slate-800 bg-slate-900/90 p-3 text-xs font-mono text-slate-300 leading-relaxed whitespace-pre-line border-l-2 border-l-cyan-400">
+                      {source.content}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

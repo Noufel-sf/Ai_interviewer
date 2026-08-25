@@ -61,6 +61,13 @@ export interface AnswerEvaluation {
   detailedFeedback: string;
   betterAnswer: string;
   keyTakeaways: string[];
+  ragSources?: {
+    id: string;
+    title: string;
+    category: string;
+    score: number;
+    content: string;
+  }[];
   conceptCoverage?: {
     concept: string;
     similarity: number;

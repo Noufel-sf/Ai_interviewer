@@ -164,8 +164,10 @@ Then generate a targeted follow-up question that addresses their missed concepts
 }
 
 /**
- * Calls Gemini 3.6 Flash to rigorously evaluate the candidate's answer.
- * Temperature is set to 0.2 to ensure deterministic, consistent, and calibrated scoring.
+ * Stage 7 RAG Pipeline:
+ * 1. Retrieve: Semantically query the Technical Knowledge Base for verified ground-truth documentation.
+ * 2. Augment: Inject retrieved context into Gemini's prompt.
+ * 3. Generate: Evaluate candidate strictly against ground truth at low temperature (0.2).
  */
 export async function evaluateUserAnswer(
   topic: TopicId,
@@ -176,7 +178,36 @@ export async function evaluateUserAnswer(
 ): Promise<EvaluationResponseType> {
   const client = getGeminiClient();
 
-  const prompt = getEvaluationPrompt(topic, difficulty, questionText, keyConceptsExpected, userAnswer);
+  // Stage 7: Step 1 & 2 - RAG Retrieval from Technical Knowledge Base
+  let retrievedDocs: { id: string; title: string; category: string; score: number; content: string }[] = [];
+  try {
+    const { searchTechnicalKnowledgeBase } = await import("./knowledgeBase");
+    const searchResults = await searchTechnicalKnowledgeBase(
+      `${questionText} ${userAnswer}`,
+      topic,
+      2
+    );
+    retrievedDocs = searchResults.map((r) => ({
+      id: r.id,
+      title: r.metadata.title,
+      category: r.metadata.category,
+      score: r.score,
+      content: r.content,
+    }));
+    console.log(`[Stage 7: RAG] Retrieved ${retrievedDocs.length} knowledge chunks for grounding:`, retrievedDocs.map(d => `${d.title} (${d.score})`));
+  } catch (ragError) {
+    console.warn("[Stage 7: RAG] Knowledge retrieval encountered an issue, proceeding with general evaluation:", ragError);
+  }
+
+  // Generate grounded evaluation prompt
+  const prompt = getEvaluationPrompt(
+    topic,
+    difficulty,
+    questionText,
+    keyConceptsExpected,
+    userAnswer,
+    retrievedDocs
+  );
 
   const response = await client.models.generateContent({
     model: "gemini-3.6-flash",
@@ -195,6 +226,11 @@ export async function evaluateUserAnswer(
 
   const cleaned = cleanJsonString(text);
   const parsed = JSON.parse(cleaned);
+
+  // Attach RAG sources for learning inspection in the UI
+  if (retrievedDocs.length > 0) {
+    parsed.ragSources = retrievedDocs;
+  }
 
   // Stage 5: Compute mathematical semantic concept coverage using embeddings & cosine similarity
   try {

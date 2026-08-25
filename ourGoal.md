@@ -355,7 +355,7 @@ Do not blindly install multiple vector databases.
 
 Use ONE.
 
----
+--- 
 
 # Stage 7 — RAG
 
